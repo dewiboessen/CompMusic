@@ -7,6 +7,3 @@ I would like to compare Dutch Carnivals music to today's top hits. I think this 
 For my corpus, I used two Spotify playlist, Vasteloavend 2020 and Today's Top Hits. Both the playlist consist of songs that are currently most popular. As measured by Spotify, carnivals music has a much higher valence (M = 0.768, SD = 0.195) than the top hits (M = 0.495, SD = 0.208). The mode of carinals music, overall, seems to be more major (M = 0.963, SD = 0.189) than the top hits (M = 0.54, SD = 0.503).
 
 The carnival music also has a much higher energy (M = 0.792, SD = 0.120), compared to the hits (M = 0.587, SD = 0.158). Interesting to see is that the liveness of today's hits (M = 1.73, SD = 0.142) is much higher than the carnival music (M = 0.222, SD = 0.161). I think these findings are also something to look into, because maybe it is possible to find a reason for it.
-eventjes wat veranderen om te kijken of het werkt joe
-
-halloooo
