@@ -12,6 +12,6 @@ The carnival music also has a much higher energy (M = 0.792, SD = 0.120), compar
 
 I wanted to see whether or not Limburgish carnival music is very different from the music in Brabant. The two playlists I used are Vastelaovend 2020 and Carnaval 2020 hits. I found that this isn't the case, so I decided to use them both. The only thing that's different is the mode. In Limburg, the music's much more major (M = 0.944, SD = 0.232), while in Brabant the difference is much greater (M = 0.683, SD = 0.467). Here, it is interesting to see that the standard deviation is very big. Because the music isn't that different from each other, I'm going to use them both.
 
-![Week7](https://dewiboessen.github.com/images/week7.PNG)
+![Carnaval vs hitsongs](week7.png)
 
 As you can see, the hitsongs in the Netherlands are more spread over both the axis. The carnival music tends to have a very high energy and a high valence. Ofcourse, there are some outliers.
