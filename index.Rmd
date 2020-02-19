@@ -13,22 +13,22 @@ output:
 library(tidyverse)
 library(plotly)
 library(spotifyr)
+library(compmus)
 source('spotify.R')
 ```
 
 ### Introduction
 
-I would like to compare Dutch Carnivals music to today's top hits. I think this is interesting because, in my opinion, carnavals music always gets people in a good mood. I also think it's interesting because the genres, subjects and even the vibes are very different. A lot of people can sing the songs in both the lists along (maybe only the people that live in the south of the Netherlands can sing along with the carnival music though). I'm very curious to see what's the difference between the two.
+I would like to compare Dutch Carnival Music to Today's Top Hits. I think this is interesting because, in my opinion, carnival music always gets people in a good mood. I also think it's interesting because the genres, subjects and even the vibes are very different. A lot of people can sing along to the songs in both the playlists. I'm very curious to see what's the difference between the two.
 
-For my corpus, I used two Spotify playlist, Vasteloavend 2020 and Today's Top Hits. Both the playlist consist of songs that are currently most popular. As measured by Spotify, carnivals music has a much higher valence (M = 0.768, SD = 0.195) than the top hits (M = 0.495, SD = 0.208). The mode of carinals music, overall, seems to be more major (M = 0.963, SD = 0.189) than the top hits (M = 0.54, SD = 0.503).
+For my corpus, I used different Spotify playlists, playlists like Vastelaovend 2020 and Carnaval 2020 hits for the carnival music and Nederlandse Hits 2020 for the songs that are popular in the Netherlands at the moment. The playlists consist of songs that are currently most popular. As measured by Spotify, carnival music has a much higher valence (M = 0.768, SD = 0.195) than the top hits (M = 0.495, SD = 0.208). The mode of carinals music, overall, seems to be more major (M = 0.963, SD = 0.189) than the top hits (M = 0.54, SD = 0.503).
 
 The carnival music also has a much higher energy (M = 0.792, SD = 0.120), compared to the hits (M = 0.587, SD = 0.158). Interesting to see is that the liveness of today's hits (M = 1.73, SD = 0.142) is much higher than the carnival music (M = 0.222, SD = 0.161). I think these findings are also something to look into, because maybe it is possible to find a reason for it.
 
-I wanted to see whether or not Limburgish carnival music is very different from the music in Brabant. The two playlists I used are Vastelaovend 2020 and Carnaval 2020 hits. I found that this isn't the case, so I decided to use them both. The only thing that's different is the mode. In Limburg, the music's much more major (M = 0.944, SD = 0.232), while in Brabant the difference is much greater (M = 0.683, SD = 0.467). Here, it is interesting to see that the standard deviation is very big. Because the music isn't that different from each other, I'm going to use them both.
 
 ***
 
-This is a second column of introductory text.
+Carnival, in Dutch Carnaval or Vastelaovend, is a holiday consisting of three days full of dressing up and drinking lots and lots of alcohol.
 
 
 ### Carnaval Music Is More Positive
@@ -93,10 +93,68 @@ ggplotly(vergelijking)
 
 ***
 
-As you can see, the hitsongs in the Netherlands are more spread over both the axis. The carnival music tends to have a very high energy and a high valence. Ofcourse, there are some outliers.
+In the visualisation, you can see that the popular songs in the Netherlands are more spread over the axis. The carnival music tends to have a very high energy and a high valence. Ofcourse, there are some outliers. But overall, it seems like the carnival music is much more energetic and positive than the hitsongs. 
 
-For this visualisation from Week 7, I took playlists of the pop music presented at the Grammy awards (US) and the Edison awards (NL) in 2019. Using `ggplotly`, the visualisation became interactive.
+I used a couple of Spotify's features. On the *x* axis, 'energy' is shown and on the *y* axis shows 'valence'. The colour of the dots clarifies whether the songs are in a major or in a minor mode and the size of the dots gives us an idea about the loudness of the songs in the playlists.
 
-The *x* axis shows valence and the *y* axis shows Spotify's ‘energy’ feature, which is roughly analogous to the notion of arousal in psychological research on emotion. Under this model, the quadrants of each graph, starting clockwise from the top left, represent angry, happy, relaxed, and sad music. The size of each point is proportional to the average volume of the track.
+The music tends to be happier and this could contribute to the fact that when celebrating carnival, most people are in a very good mood. But ofcourse, we can't forget the large consumption of alcoholic drinks.
 
-The visualisation shows that in 2019, the pop music at the Grammys was (according to Spotify) rather angrier and rather louder than the music at the Edisons.
+
+### Limburg vs. Brabant
+
+```{r}
+beppie <- 
+    get_tidy_audio_analysis('4M2tPMJdLldCKDhBZGLR9t') %>% 
+    select(segments) %>% unnest(segments) %>% 
+    select(start, duration, pitches)
+rene <- 
+    get_tidy_audio_analysis('7drS8Zj5rq3usSZY1e5crj') %>% 
+    select(segments) %>% unnest(segments) %>% 
+    select(start, duration, pitches)
+
+compmus_long_distance(
+    beppie %>% mutate(pitches = map(pitches, compmus_normalise, 'chebyshev')),
+    rene %>% mutate(pitches = map(pitches, compmus_normalise, 'chebyshev')),
+    feature = pitches,
+    method = 'euclidean') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    scale_fill_continuous(type = 'viridis', guide = 'none') +
+    labs(x = 'Beppie Kraft', y = 'Rene Schuurmans') +
+    theme_minimal()
+
+```
+
+***
+
+Because there is a language difference in the music from Brabant and Limburg, I thought it'd be interesting to compare a song. Sometimes artists make covers of songs that are popular in the other county. In this case I choose the song *Laot de zon in dien hart* and *Laat de zon in je hart*, which means let the sun into your heart. When you listen to the tracks, the two versions seem to be very alike.
+
+```{r}
+
+beppie <- get_track_audio_features('4M2tPMJdLldCKDhBZGLR9t')
+rene <- get_track_audio_features('7drS8Zj5rq3usSZY1e5crj')
+
+``` 
+|Audio Feature    |Rene Schuurmans|Beppie Kraft|
+|-----------------|---------------|------------|
+|Danceability     |0.731	        |0.786       |
+|Energy	          |0.807	        |0.791       |
+|Key	            |9	            |3           |
+|Loudness         |-5.508	        |-6.294      |
+|Mode	            |1              |1           |
+|Speechiness      |0.0289	        |0.0279      |
+|Acousticness	    |0.636          |0.431       |
+|Instrumentalness	|0	            |0           |
+|Liveness	        |0.275	        |0.332       |
+|Valence	        |0.963	        |0.939       |
+|Tempo	          |123.986	      |123.94      |
+
+As becomes clear from the table, the only big difference between the two songs is the 'loudness' feature and the key. The version of Rene Schuurmans is in G# major and the version of Beppie Kraft is in D major.
+
+I think the reason that the graph is so blurry is because the songs are in different pitches, but I am not sure and I don't know how to fix it.
