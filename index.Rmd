@@ -5,7 +5,7 @@ date:   'February--March 2020'
 output: 
     flexdashboard::flex_dashboard:
         storyboard: true
-        theme: flatly
+        theme: simplex
 ---
 
 ```{r setup}
@@ -74,7 +74,7 @@ vergelijking <- muziek %>%                       # Start with awards.
   ) +
   scale_colour_brewer(         # Use the Color Brewer to choose a palette.
     type = "qual",           # Qualitative set.
-    palette = "Paired"       # Name of the palette is 'Paired'.
+    palette = "Reds"       # Name of the palette is 'Paired'.
   ) +
   scale_size_continuous(       # Fine-tune the sizes of each point.
     trans = "exp",           # Use an exp transformation to emphasise loud.
