@@ -56,7 +56,7 @@ vergelijking <- muziek %>%                       # Start with awards.
       x = valence,
       y = energy,
       size = loudness,
-      colour = mode
+      colour = mode, label = track.name
     )
   ) +
   geom_point() +               # Scatter plot.
@@ -95,7 +95,7 @@ ggplotly(vergelijking)
 
 In the visualisation, you can see that the popular songs in the Netherlands are more spread over the axis. The carnival music tends to have a very high energy and a high valence. Ofcourse, there are some outliers. But overall, it seems like the carnival music is much more energetic and positive than the hitsongs. 
 
-I used a couple of Spotify's features. On the *x* axis, 'energy' is shown and on the *y* axis shows 'valence'. The colour of the dots clarifies whether the songs are in a major or in a minor mode and the size of the dots gives us an idea about the loudness of the songs in the playlists.
+I used a couple of Spotify's features. On the *x* axis, 'valance' is shown and on the *y* axis shows 'energy'. The colour of the dots clarifies whether the songs are in a major or in a minor mode and the size of the dots gives us an idea about the loudness of the songs in the playlists.
 
 The music tends to be happier and this could contribute to the fact that when celebrating carnival, most people are in a very good mood. But ofcourse, we can't forget the large consumption of alcoholic drinks.
 
