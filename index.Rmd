@@ -157,4 +157,4 @@ rene <- get_track_audio_features('7drS8Zj5rq3usSZY1e5crj')
 
 As becomes clear from the table, the only big difference between the two songs is the 'loudness' feature and the key. The version of Rene Schuurmans is in G# major and the version of Beppie Kraft is in D major.
 
-I think the reason that the graph is so blurry is because the songs are in different pitches, but I am not sure and I don't know how to fix it.
+I think the reason that the graph is so blurry is because the songs are in different keys, but I am not sure and I don't know how to fix it.
