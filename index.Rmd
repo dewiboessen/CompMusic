@@ -17,6 +17,48 @@ library(compmus)
 source('spotify.R')
 ```
 
+### *1000 Sterre* is repetitive 
+
+```{r}
+
+sterre <- 
+    get_tidy_audio_analysis('2belCUvfatuYkLvppS4EVV') %>% 
+    compmus_align(bars, segments) %>% 
+    select(bars) %>% unnest(bars) %>% 
+    mutate(
+        pitches = 
+            map(segments, 
+                compmus_summarise, pitches, 
+                method = 'rms', norm = 'euclidean')) %>% 
+    mutate(
+        timbre = 
+            map(segments, 
+                compmus_summarise, timbre, 
+                method = 'mean'))
+
+
+sterre %>% 
+    compmus_self_similarity(timbre, 'cosine') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() +
+    labs(x = '', y = '') + ggtitle("Timbre")
+
+
+```
+
+***
+
+For the self similarity matrices, I choose the song *1000 Sterre* by Bjorn & Mieke. It is one of the song I like the most. There is a clear pattern visable and it shows that the song is repetitive. I also choose bars as level of detail, because this gave the most clear matrix.
+
 ### Introduction
 
 I would like to compare Dutch Carnival Music to Today's Top Hits. I think this is interesting because, in my opinion, carnival music always gets people in a good mood. I also think it's interesting because the genres, subjects and even the vibes are very different. A lot of people can sing along to the songs in both the playlists. I'm very curious to see what's the difference between the two.
@@ -184,3 +226,5 @@ rene <- get_track_audio_features('7drS8Zj5rq3usSZY1e5crj')
 As becomes clear from the table, the only big difference between the two songs is the 'loudness' feature and the key. The version of Rene Schuurmans is in G# major and the version of Beppie Kraft is in D major.
 
 I think the reason that the graph is so blurry is because the songs are in different keys, but I am not sure and I don't know how to fix it.
+
+
