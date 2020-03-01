@@ -73,6 +73,7 @@ For the self similarity matrices, I choose the song *1000 Sterre* by Bjorn & Mie
 
 I wasn't able to make the chroma self similarity matrix work and because of that I could not compare the timbre on to the chroma one. I hope this is not a problem.
 
+
 ### Introduction
 
 I would like to compare Dutch Carnival Music to Today's Top Hits. I think this is interesting because, in my opinion, carnival music always gets people in a good mood. I also think it's interesting because the genres, subjects and even the vibes are very different. A lot of people can sing along to the songs in both the playlists. I'm very curious to see what's the difference between the two.
