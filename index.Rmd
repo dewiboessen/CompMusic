@@ -36,6 +36,18 @@ sterre <-
                 compmus_summarise, timbre, 
                 method = 'mean'))
 
+sterre %>% 
+    compmus_gather_timbre %>% 
+    ggplot(
+        aes(
+            x = start + duration / 2, 
+            width = duration, 
+            y = basis, 
+            fill = value)) + 
+    geom_tile() +
+    labs(x = 'Time (s)', y = NULL, fill = 'Magnitude') +
+    scale_fill_viridis_c(option = 'E') +
+    theme_classic()
 
 sterre %>% 
     compmus_self_similarity(timbre, 'cosine') %>% 
@@ -58,6 +70,8 @@ sterre %>%
 ***
 
 For the self similarity matrices, I choose the song *1000 Sterre* by Bjorn & Mieke. It is one of the song I like the most. There is a clear pattern visable and it shows that the song is repetitive. I also choose bars as level of detail, because this gave the most clear matrix.
+
+I wasn't able to make the chroma self similarity matrix work and because of that I could not compare the timbre on to the chroma one. I hope this is not a problem.
 
 ### Introduction
 
