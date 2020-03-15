@@ -19,6 +19,66 @@ library(gridExtra)
 ```
 
 
+### Carnival Music Differs in Tempo
+
+```{r}
+sterre <- get_tidy_audio_analysis("3Anu8IPzrh9GUsOBh04rWn")
+
+sterre %>% 
+    tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
+    ggplot(aes(x = time, y = bpm, fill = power, title = "1000 Sterre")) + 
+    geom_raster() + 
+    scale_fill_viridis_c(guide = 'none') +
+    labs(x = 'Time (s)', y = 'Tempo (BPM)') +
+    theme_classic()
+
+zuuje <- 
+    get_tidy_audio_analysis('0rSb6Xjxzsus8qJaJ6017S')
+
+zuuje %>% 
+    tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
+    ggplot(aes(x = time, y = bpm, fill = power, title = "Nao 't Zuuje")) + 
+    geom_raster() + 
+    scale_fill_viridis_c(guide = 'none') +
+    labs(x = 'Time (s)', y = 'Tempo (BPM)') +
+    theme_classic()
+
+joost <- 
+  get_tidy_audio_analysis("7IHqbDM2o7uCpb2SJnijWl")
+
+joost %>% 
+    tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
+    ggplot(aes(x = time, y = bpm, fill = power, title = "Joost")) + 
+    geom_raster() + 
+    scale_fill_viridis_c(guide = 'none') +
+    labs(x = 'Time (s)', y = 'Tempo (BPM)') +
+    theme_classic()
+
+zuipschuit <-
+  get_tidy_audio_analysis("0kfQVYncHXlHfnRUxkZdk4")
+
+zuipschuit %>% 
+    tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
+    ggplot(aes(x = time, y = bpm, fill = power, title = "De Zuipschuit")) + 
+    geom_raster() + 
+    scale_fill_viridis_c(guide = 'none') +
+    labs(x = 'Time (s)', y = 'Tempo (BPM)') +
+    theme_classic()
+```
+
+***
+For making the tempograms, I used the same songs as before.
+What becomes clear is that even though the songs seem to be very similar, the tempi of the songs really differ from each other.
+
+The song *1000 Sterre* has a tempo a bit slower then 140 BPM. In the pre-chorus of the song, there is no drumbeat and this is very clear to see in the tempogram.
+
+The second song, *Nao 't Zuuje*, is a very difficult song for Spotify to define. I think this is due to the fact that the song shifts between two time signatures, 6/8 and 9/8. And the song makes almost no use of drums.
+
+*Joost* is the song with the most clear tempo around 150 BPM. When you listen to the song, you could argue that it has been made with a computer. Personally, this tempogram is an argument to say that this is indeed what happened.
+
+I think that something went wrong in the last tempogram. Because, according to this, there should be an increase in tempo at the end of *De Zuipschuit*. I don't really hear this myself, but that could be something to look into a little bit deeper.
+
+
 
 ### Carnival Music has a clear structure
 
@@ -251,7 +311,7 @@ vergelijking <- muziek %>%                       # Start with awards.
   ) +
   scale_colour_brewer(         # Use the Color Brewer to choose a palette.
     type = "qual",           # Qualitative set.
-    palette = "Reds"       # Name of the palette is 'Paired'.
+    palette = "Set3"       # Name of the palette is 'Paired'.
   ) +
   scale_size_continuous(       # Fine-tune the sizes of each point.
     trans = "exp",           # Use an exp transformation to emphasise loud.
@@ -266,6 +326,46 @@ vergelijking <- muziek %>%                       # Start with awards.
 
 ggplotly(vergelijking)
 
+carnavall <- carnaval %>%                       # Start with awards.
+  mutate(
+    mode = ifelse(mode == 0, 'Minor', 'Major')
+  ) %>%
+  ggplot(                      # Set up the plot.
+    aes(
+      x = valence,
+      y = danceability,
+      size = loudness,
+      colour = playlist, label = track.name
+    )
+  ) +
+  geom_point() +               # Scatter plot.
+  geom_rug(size = 0.1) +       # Add 'fringes' to show data distribution.     
+  scale_x_continuous(          # Fine-tune the x axis.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),  # Use grid-lines for quadrants only.
+    minor_breaks = NULL      # Remove 'minor' grid-lines.
+  ) +
+  scale_y_continuous(          # Fine-tune the y axis in the same way.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),
+    minor_breaks = NULL
+  ) +
+  scale_colour_brewer(         # Use the Color Brewer to choose a palette.
+    type = "qual",           # Qualitative set.
+    palette = "Set3"       # Name of the palette is 'Paired'.
+  ) +
+  scale_size_continuous(       # Fine-tune the sizes of each point.
+    trans = "exp",           # Use an exp transformation to emphasise loud.
+    guide = "none"           # Remove the legend for size.
+  ) +
+  theme_light() +              # Use a simpler them.
+  labs(                        # Make the titles nice.
+    x = "Valence",
+    y = "Danceability",
+    colour = "Playlist"
+  )
+
+ggplotly(carnavall)
 ```
 
 ***
@@ -284,10 +384,12 @@ The music tends to be happier and this could contribute to the fact that when ce
 beppie <- 
     get_tidy_audio_analysis('4M2tPMJdLldCKDhBZGLR9t') %>% 
     select(segments) %>% unnest(segments) %>% 
+    compmus_c_transpose('D#') %>% 
     select(start, duration, pitches)
 rene <- 
     get_tidy_audio_analysis('7drS8Zj5rq3usSZY1e5crj') %>% 
-    select(segments) %>% unnest(segments) %>% 
+    select(segments) %>% unnest(segments) %>%
+    compmus_c_transpose('A') %>%
     select(start, duration, pitches)
 
 beppie %>% 
@@ -331,7 +433,8 @@ compmus_long_distance(
     geom_tile() +
     scale_fill_continuous(type = 'viridis', guide = 'none') +
     labs(x = 'Beppie Kraft', y = 'Rene Schuurmans') +
-    theme_minimal()
+    theme_minimal() +
+  coord_equal()
 
 ```
 
