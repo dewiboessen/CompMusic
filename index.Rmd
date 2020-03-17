@@ -254,26 +254,13 @@ It becomes clear that, despite the fact that carnival music in general is very s
 
 When you look at the keygrams for the songs from Brabant, you see a lot more blue. *Joost* consists of three parts; the small yellow part, the middle and the modulation at the end of the song. *De Zuipschuit* shows four parts. I don't think it is possible to tell in which key this song is made, but in the middle something else is happening. At the end, there are a lot of changes.
 
-### Introduction
+### Carnival Music Is Much More Alike Than Today's Top Hits.
 
 I would like to compare Dutch Carnival Music to Today's Top Hits. I think this is interesting because, in my opinion, carnival music always gets people in a good mood. I also think it's interesting because the genres, subjects and even the vibes are very different. A lot of people can sing along to the songs in both the playlists. I'm very curious to see what's the difference between the two.
 
-For my corpus, I used different Spotify playlists, playlists like Vastelaovend 2020 and Carnaval 2020 hits for the carnival music and Nederlandse Hits 2020 for the songs that are popular in the Netherlands at the moment. The playlists consist of songs that are currently most popular. As measured by Spotify, carnival music has a much higher valence (M = 0.768, SD = 0.195) than the top hits (M = 0.495, SD = 0.208). The mode of carinals music, overall, seems to be more major (M = 0.963, SD = 0.189) than the top hits (M = 0.54, SD = 0.503).
-
-The carnival music also has a much higher energy (M = 0.792, SD = 0.120), compared to the hits (M = 0.587, SD = 0.158). Interesting to see is that the liveness of today's hits (M = 1.73, SD = 0.142) is much higher than the carnival music (M = 0.222, SD = 0.161). I think these findings are also something to look into, because maybe it is possible to find a reason for it.
-
-
-***
-
-Carnival, in Dutch Carnaval or Vastelaovend, is a holiday consisting of three days full of dressing up and drinking lots and lots of alcohol. (here needs some more information)
-
-
-### Carnaval Music Is More Positive
-
 ```{r}
-
 limburg <- get_playlist_audio_features('Henk Theunissen', '1xQvcNKQVMGOsuZK6nXx9a')
-brabant <- get_playlist_audio_features('Niels Brooimans', '50CPYf5ILS0eRSUZQriqFo')
+brabant <- get_playlist_audio_features('Dewi Boessen', '5HTIYp3LELNnuvgUSByL9I')
 
 carnaval <-
   limburg %>% mutate(playlist = "Limburg") %>%
@@ -366,7 +353,36 @@ carnavall <- carnaval %>%                       # Start with awards.
   )
 
 ggplotly(carnavall)
+
 ```
+Audio Feature   |Carnavival Music    |Hits in The Netherlands|
+--------------------------------------------------------------
+Acousticness    |M = 0.213 SD = 0.173|M = 0.291 SD = 0.272   |
+Danceability    |M = 0.669 SD = 0.135|M = 0.665 SD = 0.123   |
+Energy          |M = 0.841 SD = 0.109|M = 0.619 SD = 0.163   |
+Instrumentalness|M = 0.008 SD = 0.059|M = 0.009 SD = 0.067   |
+Liveness        |M = 0.250 SD = 0.198|M = 0.155 SD = 0.121   |
+Loudness        |M = -5.44 SD = 1.66 |M = -6.38 SD = 2.45    |
+Speechiness     |M = 0.084 SD = 0.065|M = 0.086 SD = 0.081   |
+Valence         |M = 0.792 SD = 0.180|M = 0.511 SD = 0.220   |
+Mode            |M = 0.876 SD = 0.330|M = 0.630 SD = 0.485   |
+
+
+***
+For my corpus, I used different Spotify playlists, playlists like Vastelaovend 2020 and Carnaval Brabant for the carnival music and Nederlandse Hits 2020 for the songs that are popular in the Netherlands at the moment. To make it a little bit more easier, I decided to put the music from Limburg and Brabant in one playlist. The playlists consist of songs that are currently most popular. As measured by Spotify, carnival music has a much higher valence (M = 0.792, SD = 0.180) than the top hits (M = 0.511, SD = 0.220). The mode of carnival music, overall, seems to be more major (M = 0.876, SD = 0.330) than the top hits (M = 0.630, SD = 0.485). The carnival music also has a much higher energy (M = 0.841, SD = 0.109), compared to the hits (M = 0.619, SD = 0.163).
+
+
+***
+
+Carnival, in Dutch Carnaval or Vastelaovend, is a holiday consisting of three days full of dressing up and drinking lots and lots of alcohol. (here needs some more information)
+
+
+### Carnaval Music Is More Positive
+
+
+
+
+
 
 ***
 
