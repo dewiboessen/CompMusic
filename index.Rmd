@@ -322,7 +322,8 @@ carnavall <- carnaval %>%                       # Start with awards.
       x = valence,
       y = danceability,
       size = loudness,
-      colour = playlist, label = track.name
+      colour = playlist, label = track.name,
+      title = "Carnival Music vs. Current Hits in The Netherlands"
     )
   ) +
   geom_point() +               # Scatter plot.
@@ -355,6 +356,8 @@ carnavall <- carnaval %>%                       # Start with awards.
 ggplotly(carnavall)
 
 ```
+
+***
 Audio Feature   |Carnavival Music    |Hits in The Netherlands|
 --------------------------------------------------------------
 Acousticness    |M = 0.213 SD = 0.173|M = 0.291 SD = 0.272   |
