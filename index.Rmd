@@ -5,7 +5,7 @@ date:   'February--March 2020'
 output: 
     flexdashboard::flex_dashboard:
         storyboard: true
-        theme: simplex
+        theme: cosmo
 ---
 
 ```{r setup}
@@ -16,8 +16,256 @@ library(spotifyr)
 library(compmus)
 source('spotify.R')
 library(gridExtra)
+library(tidymodels)
+library(protoclust)
+library(ggdendro)
+library(heatmaply)
+library(kknn)
+library(C50)
 ```
 
+### week 12
+
+```{r}
+
+limburg <- 
+    get_playlist_audio_features('Henk Theunissen', '1xQvcNKQVMGOsuZK6nXx9a') %>% 
+    add_audio_analysis
+brabant <-
+    get_playlist_audio_features('Dewi Boessen', '5HTIYp3LELNnuvgUSByL9I') %>% 
+    add_audio_analysis
+
+carnaval <-
+  limburg %>% mutate(playlist = "Limburg") %>%
+  bind_rows(brabant %>% mutate(playlist = "Brabant")) %>%
+    mutate(playlist = factor(playlist)) %>% 
+    mutate(
+        segments = 
+            map2(segments, key, compmus_c_transpose)) %>% 
+    mutate(
+        pitches = 
+            map(segments, 
+                compmus_summarise, pitches, 
+                method = 'mean', norm = 'manhattan'),
+        timbre =
+            map(
+                segments,
+                compmus_summarise, timbre,
+                method = 'mean')) %>% 
+    mutate(pitches = map(pitches, compmus_normalise, 'clr')) %>% 
+    mutate_at(vars(pitches, timbre), map, bind_rows) %>% 
+    unnest(cols = c(pitches, timbre))
+
+carnaval_class <- 
+    recipe(playlist ~
+               danceability +
+               energy +
+               loudness +
+               speechiness +
+               acousticness +
+               instrumentalness +
+               liveness +
+               valence +
+               tempo +
+               duration +
+               C + `C#|Db` + D + `D#|Eb` +
+               E + `F` + `F#|Gb` + G +
+               `G#|Ab` + A + `A#|Bb` + B +
+               c01 + c02 + c03 + c04 + c05 + c06 +
+               c07 + c08 + c09 + c10 + c11 + c12,
+           data = carnaval) %>% 
+    step_center(all_predictors()) %>%
+    step_scale(all_predictors()) %>%
+    # step_range(all_predictors()) %>% 
+    prep(carnaval) %>% 
+    juice
+
+carnaval_knn <- 
+    nearest_neighbor(mode = 'classification', neighbors = 1) %>% 
+    set_engine('kknn')
+predict_knn <- function(split)
+    fit(carnaval_knn, playlist ~ ., data = analysis(split)) %>% 
+    predict(assessment(split), type = 'class') %>%
+    bind_cols(assessment(split))
+
+carnaval_cv <- carnaval_class %>% vfold_cv(5)
+
+carnaval_cv %>% 
+    mutate(pred = map(splits, predict_knn)) %>% unnest(pred) %>% 
+    conf_mat(truth = playlist, estimate = .pred_class) %>% 
+    autoplot(type = 'heatmap')
+
+```
+
+***
+The plot on the left shows how a classifier tries to distinguish between the music from Limburg and Brabant. What becomes clear is that the classifier is better at telling if the music from Limburg is Limburgs or Brabants. It got 83% of the songs right. Vice versa, the classifier performed worse. For Brabant it got only 63% right.
+I honestly have no clue why the difference is this big.
+
+
+### What Is This Storyboard About? {data-commentary-width=400}
+
+In this storyboard I'm going to look at *Carnival Music*, in Dutch this is called "carnavals muziek." At first, I'm going to investigate how it differs from modern hitsongs. I think this is very interesting, because it is both music that people easily can sing along to. Also, when you listen to it, you can clearly hear how different each kind of music is, but it is both very popular.
+
+After analysing the difference, I am going to take a look at the difference in carnival music itself. Because it is celebrated in two different provinces in The Netherlands there must be a kind of difference in the music too. One main difference will be the language. This is due to the fact that the lyrics of the music in Brabant are in Dutch and in Limburg they are in Limburgs, which can be compared to a mixture of Flemish, Dutch and German.
+
+I will do this by using different Spotify playlists that make up my corpus. Also, I think that comparing various audio features to each other can give me an idea about what makes each kind of music different. After doing this for carnival music vs. current hits and Limburg vs. Brabant, I will elaborate further from that point.
+
+***
+**What Is *Carnival*?**
+
+Originally, Carnival (in Dutch *Carnaval* or *Vastelaovend*) is Catholic feast.[1] It is officially celebrated on the three days before Ash Wednesday, but in practice, everyone mostly starts celebrating on thurday instead of sunday. Ash Wednesday marks the beginning of the Lent and thus for a lot of people the last chance to party.
+The word vastelaovend in Limburgs means vastenavond in Dutch, which in English can be translated to Lentnight. This, in turn, could be led back to the night before Lent.
+
+The carnival season starts on the 11th of November, 11/11 at 11:11 am. Eleven is seen as the number of the crazy and that is why almost everything has some attachment to this number.
+
+Carnival is celebrated in the south of The Netherlands and mostly in the provinces Brabant and Limburg. The ways it is celebrated can also be diveded in two mean variants; "het Bourgondisch Carnaval" and "het Rijnlands Carnaval." 
+In Brabant you will see especially the first one. Everyone dresses simple and the same, because everyone is the same. This way, classes are not visible anymore.
+The second kind of celebration is the one you will see in Limburg. Everyone dresses extraordinary. The crazier the better.
+Ofcourse, there are a lot of local adaptations of these two main kinds of celebration.
+
+[1] Wettelijke Feestdagen. *Carnaval*. https://www.wettelijke-feestdagen.nl/Feestdagen/Carnaval.aspx.
+
+![Vastelaovesgezicht 2019](vastelaovesgezicht.PNG){width=70%}
+
+
+### Carnival Music Is More Similar Than Current Hitsongs. {data-commentary-width=300}
+
+```{r}
+limburg <- get_playlist_audio_features('Henk Theunissen', '1xQvcNKQVMGOsuZK6nXx9a')
+brabant <- get_playlist_audio_features('Dewi Boessen', '5HTIYp3LELNnuvgUSByL9I')
+
+carnaval <-
+  limburg %>% mutate(playlist = "Limburg") %>%
+  bind_rows(brabant %>% mutate(playlist = "Brabant"))
+
+todayshits <- get_playlist_audio_features('Soave', '5iKY71w39zY0Bs6kcmOK2Z')
+
+muziek <- carnaval %>% mutate(playlist = "Carnaval") %>% bind_rows(todayshits %>% mutate(playlist = "Hits in Nederland 2020"))
+
+
+vergelijking <- muziek %>%                       # Start with awards.
+  mutate(
+    mode = ifelse(mode == 0, 'Minor', 'Major')
+  ) %>%
+  ggplot(                      # Set up the plot.
+    aes(
+      x = valence,
+      y = energy,
+      size = loudness,
+      colour = mode, label = track.name
+    )
+  ) +
+  geom_point(alpha = 0.7) +               # Scatter plot.
+  geom_rug(size = 0.1) +       # Add 'fringes' to show data distribution.
+  facet_wrap(~ playlist) +     # Separate charts per playlist.
+  scale_x_continuous(          # Fine-tune the x axis.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),  # Use grid-lines for quadrants only.
+    minor_breaks = NULL      # Remove 'minor' grid-lines.
+  ) +
+  scale_y_continuous(          # Fine-tune the y axis in the same way.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),
+    minor_breaks = NULL
+  ) +
+  scale_colour_manual(values =
+      c("gold1", "blue1")
+  ) +
+  scale_size_continuous(       # Fine-tune the sizes of each point.
+    trans = "exp",           # Use an exp transformation to emphasise loud.
+    guide = "none"           # Remove the legend for size.
+  ) +
+  theme_light() +              # Use a simpler them.
+  labs(                        # Make the titles nice.
+    x = "Valence",
+    y = "Energy",
+    colour = "Mode", title = "Carnival Music vs. Current Hits"
+  )
+
+ggplotly(vergelijking)
+
+
+```
+
+***
+**What Does This Scatterplot Show?**
+
+For this visualisation I used three different Spotify playlists; *Vastelaovend 2020*, *Carnaval Brabant* and *Nederlandse Hits 2020*. To compare the carnival music to the current hits in The Netherlands, I didn't distinguish between Limburg and Brabant. I compared the valence, on the *x* axis, to the energy, on the *y* axis, of both playlists. The size of the dots gives an idea of the loudness of each individual song. In the table below the means and standard deviations of each of Spotify's audio features is shown. I have chosen valence, energy and loudness because, as you can see, the difference between these features is the highest.
+
+|Audio Feature   |Carnavival Music    |Hits in The Netherlands|
+|----------------|--------------------|-----------------------|
+|Acousticness    |M = 0.213 SD = 0.173|M = 0.291 SD = 0.272   |
+|Danceability    |M = 0.669 SD = 0.135|M = 0.665 SD = 0.123   |
+|Energy          |M = 0.841 SD = 0.109|M = 0.619 SD = 0.163   |
+|Instrumentalness|M = 0.008 SD = 0.059|M = 0.009 SD = 0.067   |
+|Liveness        |M = 0.250 SD = 0.198|M = 0.155 SD = 0.121   |
+|Loudness        |M = -5.44 SD = 1.66 |M = -6.38 SD = 2.45    |
+|Speechiness     |M = 0.084 SD = 0.065|M = 0.086 SD = 0.081   |
+|Valence         |M = 0.792 SD = 0.180|M = 0.511 SD = 0.220   |
+|Mode            |M = 0.876 SD = 0.330|M = 0.630 SD = 0.485   |
+*Means and Standard Deviations of various Spotify Audio Features*
+
+
+**What Is The Difference Between Carnival Music And Current Hitsongs?**
+
+What stands out the most is that the carnival music is mostly situated in the same quarter, high energy/high valence, while the hitsongs are more spread out, only avoiding the low energy/high valence quarter. This indicates that carnival music is generally very similar.
+As is shown in the table and the scatterplot, carnival music is more often in a major mode. The music is almost always "feel-good" music and so, the use of a major mode seems like a logical decision.
+
+### The Most Popular Carnival Songs
+
+```{r}
+carnavall <- carnaval %>%                       # Start with awards.
+  mutate(
+    mode = 
+      factor(
+        mode,
+        c(1, 0),
+        c("Major", "Minor")
+      )
+  ) %>%
+  ggplot(                      # Set up the plot.
+    aes(
+      x = playlist_name,
+      y = track.popularity,
+      color = playlist_name, label = track.name
+    )
+  ) +
+  geom_point() +               # Scatter plot.
+  scale_x_discrete(          # Fine-tune the x axis.     # Remove 'minor' grid-lines.
+  ) +
+  scale_y_continuous(          # Fine-tune the y axis in the same way.
+    limits = c(0, 70),
+    breaks = c(0, 10, 20, 30, 40, 50 ,60 ,70),
+    minor_breaks = NULL
+  ) +
+  scale_colour_manual(
+    values =
+      c("gold1", "blue1")
+  )   +
+  scale_size_continuous(       # Fine-tune the sizes of each point.
+    trans = "exp",           # Use an exp transformation to emphasise loud.
+    guide = "none"           # Remove the legend for size.
+  ) +
+  theme_light() +              # Use a simpler them.
+  labs(                        # Make the titles nice.
+    x = "Playlist",
+    y = "Track Popularity", colour = "Playlist"
+  )
+
+ggplotly(carnavall)
+
+```
+
+***
+**What Tracks Are The Most Popular?**
+
+To compare the songs from Brabant to those from Limburg, I need to make a selection of which songs I will use. I wanted to base this decision on track popularity.
+
+For Brabant, the three most popular tracks are *De Toreador*, *Links Rechts* and *Brabant*. The first song is definately an outlier and that is why I won't be using that song. *Brabant* by Guus Meeuwis is a song that is played by Dutch radiostations throughout the whole year, so I won't be using that song either. Therefore, the songs I will use are *Links Rechts*, *Kali* and *Potentie*.
+
+*Limburg* by Rowwen Hèze is the most popular song for Limburg, but the same as for the Guus Meeuwis applies to this song. The songs I will be using are *Nao 't Zuuje*, *VRUNJ TOT DE ALLERLESTE RUNJ* and *1000 Sterre*.
+
+Another thing that becomes visible by this plot is that the Dutch music is much more popular. This could be due to the fact that other people, who don't celebrate carnival, still listen to this music at e.g. parties. Because these songs are in Dutch and the songs from Limburg aren't, makes these more approachable for others.
 
 ### Carnival Music Differs in Tempo
 
@@ -254,147 +502,6 @@ It becomes clear that, despite the fact that carnival music in general is very s
 
 When you look at the keygrams for the songs from Brabant, you see a lot more blue. *Joost* consists of three parts; the small yellow part, the middle and the modulation at the end of the song. *De Zuipschuit* shows four parts. I don't think it is possible to tell in which key this song is made, but in the middle something else is happening. At the end, there are a lot of changes.
 
-### Carnival Music Is Much More Alike Than Today's Top Hits.
-
-I would like to compare Dutch Carnival Music to Today's Top Hits. I think this is interesting because, in my opinion, carnival music always gets people in a good mood. I also think it's interesting because the genres, subjects and even the vibes are very different. A lot of people can sing along to the songs in both the playlists. I'm very curious to see what's the difference between the two.
-
-```{r}
-limburg <- get_playlist_audio_features('Henk Theunissen', '1xQvcNKQVMGOsuZK6nXx9a')
-brabant <- get_playlist_audio_features('Dewi Boessen', '5HTIYp3LELNnuvgUSByL9I')
-
-carnaval <-
-  limburg %>% mutate(playlist = "Limburg") %>%
-  bind_rows(brabant %>% mutate(playlist = "Brabant"))
-
-todayshits <- get_playlist_audio_features('Soave', '5iKY71w39zY0Bs6kcmOK2Z')
-
-muziek <- carnaval %>% mutate(playlist = "Carnaval") %>% bind_rows(todayshits %>% mutate(playlist = "Hits in Nederland 2020"))
-
-
-vergelijking <- muziek %>%                       # Start with awards.
-  mutate(
-    mode = ifelse(mode == 0, 'Minor', 'Major')
-  ) %>%
-  ggplot(                      # Set up the plot.
-    aes(
-      x = valence,
-      y = energy,
-      size = loudness,
-      colour = mode, label = track.name
-    )
-  ) +
-  geom_point() +               # Scatter plot.
-  geom_rug(size = 0.1) +       # Add 'fringes' to show data distribution.
-  facet_wrap(~ playlist) +     # Separate charts per playlist.
-  scale_x_continuous(          # Fine-tune the x axis.
-    limits = c(0, 1),
-    breaks = c(0, 0.50, 1),  # Use grid-lines for quadrants only.
-    minor_breaks = NULL      # Remove 'minor' grid-lines.
-  ) +
-  scale_y_continuous(          # Fine-tune the y axis in the same way.
-    limits = c(0, 1),
-    breaks = c(0, 0.50, 1),
-    minor_breaks = NULL
-  ) +
-  scale_colour_brewer(         # Use the Color Brewer to choose a palette.
-    type = "qual",           # Qualitative set.
-    palette = "Set3"       # Name of the palette is 'Paired'.
-  ) +
-  scale_size_continuous(       # Fine-tune the sizes of each point.
-    trans = "exp",           # Use an exp transformation to emphasise loud.
-    guide = "none"           # Remove the legend for size.
-  ) +
-  theme_light() +              # Use a simpler them.
-  labs(                        # Make the titles nice.
-    x = "Valence",
-    y = "Energy",
-    colour = "Mode"
-  )
-
-ggplotly(vergelijking)
-
-carnavall <- carnaval %>%                       # Start with awards.
-  mutate(
-    mode = ifelse(mode == 0, 'Minor', 'Major')
-  ) %>%
-  ggplot(                      # Set up the plot.
-    aes(
-      x = valence,
-      y = danceability,
-      size = loudness,
-      colour = playlist, label = track.name,
-      title = "Carnival Music vs. Current Hits in The Netherlands"
-    )
-  ) +
-  geom_point() +               # Scatter plot.
-  geom_rug(size = 0.1) +       # Add 'fringes' to show data distribution.     
-  scale_x_continuous(          # Fine-tune the x axis.
-    limits = c(0, 1),
-    breaks = c(0, 0.50, 1),  # Use grid-lines for quadrants only.
-    minor_breaks = NULL      # Remove 'minor' grid-lines.
-  ) +
-  scale_y_continuous(          # Fine-tune the y axis in the same way.
-    limits = c(0, 1),
-    breaks = c(0, 0.50, 1),
-    minor_breaks = NULL
-  ) +
-  scale_colour_brewer(         # Use the Color Brewer to choose a palette.
-    type = "qual",           # Qualitative set.
-    palette = "Set3"       # Name of the palette is 'Paired'.
-  ) +
-  scale_size_continuous(       # Fine-tune the sizes of each point.
-    trans = "exp",           # Use an exp transformation to emphasise loud.
-    guide = "none"           # Remove the legend for size.
-  ) +
-  theme_light() +              # Use a simpler them.
-  labs(                        # Make the titles nice.
-    x = "Valence",
-    y = "Danceability",
-    colour = "Playlist"
-  )
-
-ggplotly(carnavall)
-
-```
-
-***
-Audio Feature   |Carnavival Music    |Hits in The Netherlands|
---------------------------------------------------------------
-Acousticness    |M = 0.213 SD = 0.173|M = 0.291 SD = 0.272   |
-Danceability    |M = 0.669 SD = 0.135|M = 0.665 SD = 0.123   |
-Energy          |M = 0.841 SD = 0.109|M = 0.619 SD = 0.163   |
-Instrumentalness|M = 0.008 SD = 0.059|M = 0.009 SD = 0.067   |
-Liveness        |M = 0.250 SD = 0.198|M = 0.155 SD = 0.121   |
-Loudness        |M = -5.44 SD = 1.66 |M = -6.38 SD = 2.45    |
-Speechiness     |M = 0.084 SD = 0.065|M = 0.086 SD = 0.081   |
-Valence         |M = 0.792 SD = 0.180|M = 0.511 SD = 0.220   |
-Mode            |M = 0.876 SD = 0.330|M = 0.630 SD = 0.485   |
-
-
-***
-For my corpus, I used different Spotify playlists, playlists like Vastelaovend 2020 and Carnaval Brabant for the carnival music and Nederlandse Hits 2020 for the songs that are popular in the Netherlands at the moment. To make it a little bit more easier, I decided to put the music from Limburg and Brabant in one playlist. The playlists consist of songs that are currently most popular. As measured by Spotify, carnival music has a much higher valence (M = 0.792, SD = 0.180) than the top hits (M = 0.511, SD = 0.220). The mode of carnival music, overall, seems to be more major (M = 0.876, SD = 0.330) than the top hits (M = 0.630, SD = 0.485). The carnival music also has a much higher energy (M = 0.841, SD = 0.109), compared to the hits (M = 0.619, SD = 0.163).
-
-
-***
-
-Carnival, in Dutch Carnaval or Vastelaovend, is a holiday consisting of three days full of dressing up and drinking lots and lots of alcohol. (here needs some more information)
-
-
-### Carnaval Music Is More Positive
-
-
-
-
-
-
-***
-
-In the visualisation, you can see that the popular songs in the Netherlands are more spread over the axis. The carnival music tends to have a very high energy and a high valence. Ofcourse, there are some outliers. But overall, it seems like the carnival music is much more energetic and positive than the hitsongs. Carnival music also seems to be very similar because most of the songs are in the same area of the plot.
-
-I used a couple of Spotify's features. On the *x* axis, 'valance' is shown and on the *y* axis shows 'energy'. The colour of the dots clarifies whether the songs are in a major or in a minor mode and the size of the dots gives us an idea about the loudness of the songs in the playlists.
-
-
-The music tends to be happier and this could contribute to the fact that when celebrating carnival, most people are in a very good mood. But ofcourse, we can't forget the large consumption of alcoholic drinks.
 
 
 ### Limburg vs. Brabant
@@ -568,3 +675,5 @@ sterre_chroma %>%
 For the self similarity matrices, I choose the song *1000 Sterre* by Bjorn & Mieke. It is one of the song I like the most. There is a clear pattern visable and it shows that the song is repetitive. I also choose bars as level of detail, because this gave the most clear matrix.
 
 I wasn't able to make the chroma self similarity matrix work and because of that I could not compare the timbre on to the chroma one. I hope this is not a problem.
+
+
