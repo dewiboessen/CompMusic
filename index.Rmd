@@ -5,7 +5,7 @@ date:   'February--March 2020'
 output: 
     flexdashboard::flex_dashboard:
         storyboard: true
-        theme: cosmo
+        theme: flatly
 ---
 
 ```{r setup}
@@ -24,85 +24,8 @@ library(kknn)
 library(C50)
 ```
 
-### week 12
 
-```{r}
-
-limburg <- 
-    get_playlist_audio_features('Henk Theunissen', '1xQvcNKQVMGOsuZK6nXx9a') %>% 
-    add_audio_analysis
-brabant <-
-    get_playlist_audio_features('Dewi Boessen', '5HTIYp3LELNnuvgUSByL9I') %>% 
-    add_audio_analysis
-
-carnaval <-
-  limburg %>% mutate(playlist = "Limburg") %>%
-  bind_rows(brabant %>% mutate(playlist = "Brabant")) %>%
-    mutate(playlist = factor(playlist)) %>% 
-    mutate(
-        segments = 
-            map2(segments, key, compmus_c_transpose)) %>% 
-    mutate(
-        pitches = 
-            map(segments, 
-                compmus_summarise, pitches, 
-                method = 'mean', norm = 'manhattan'),
-        timbre =
-            map(
-                segments,
-                compmus_summarise, timbre,
-                method = 'mean')) %>% 
-    mutate(pitches = map(pitches, compmus_normalise, 'clr')) %>% 
-    mutate_at(vars(pitches, timbre), map, bind_rows) %>% 
-    unnest(cols = c(pitches, timbre))
-
-carnaval_class <- 
-    recipe(playlist ~
-               danceability +
-               energy +
-               loudness +
-               speechiness +
-               acousticness +
-               instrumentalness +
-               liveness +
-               valence +
-               tempo +
-               duration +
-               C + `C#|Db` + D + `D#|Eb` +
-               E + `F` + `F#|Gb` + G +
-               `G#|Ab` + A + `A#|Bb` + B +
-               c01 + c02 + c03 + c04 + c05 + c06 +
-               c07 + c08 + c09 + c10 + c11 + c12,
-           data = carnaval) %>% 
-    step_center(all_predictors()) %>%
-    step_scale(all_predictors()) %>%
-    # step_range(all_predictors()) %>% 
-    prep(carnaval) %>% 
-    juice
-
-carnaval_knn <- 
-    nearest_neighbor(mode = 'classification', neighbors = 1) %>% 
-    set_engine('kknn')
-predict_knn <- function(split)
-    fit(carnaval_knn, playlist ~ ., data = analysis(split)) %>% 
-    predict(assessment(split), type = 'class') %>%
-    bind_cols(assessment(split))
-
-carnaval_cv <- carnaval_class %>% vfold_cv(5)
-
-carnaval_cv %>% 
-    mutate(pred = map(splits, predict_knn)) %>% unnest(pred) %>% 
-    conf_mat(truth = playlist, estimate = .pred_class) %>% 
-    autoplot(type = 'heatmap')
-
-```
-
-***
-The plot on the left shows how a classifier tries to distinguish between the music from Limburg and Brabant. What becomes clear is that the classifier is better at telling if the music from Limburg is Limburgs or Brabants. It got 83% of the songs right. Vice versa, the classifier performed worse. For Brabant it got only 63% right.
-I honestly have no clue why the difference is this big.
-
-
-### What Is This Storyboard About? {data-commentary-width=400}
+### What Is This Storyboard About? {data-commentary-width=500}
 
 In this storyboard I'm going to look at *Carnival Music*, in Dutch this is called "carnavals muziek." At first, I'm going to investigate how it differs from modern hitsongs. I think this is very interesting, because it is both music that people easily can sing along to. Also, when you listen to it, you can clearly hear how different each kind of music is, but it is both very popular.
 
@@ -118,14 +41,14 @@ The word vastelaovend in Limburgs means vastenavond in Dutch, which in English c
 
 The carnival season starts on the 11th of November, 11/11 at 11:11 am. Eleven is seen as the number of the crazy and that is why almost everything has some attachment to this number.
 
-Carnival is celebrated in the south of The Netherlands and mostly in the provinces Brabant and Limburg. The ways it is celebrated can also be diveded in two mean variants; "het Bourgondisch Carnaval" and "het Rijnlands Carnaval." 
+Carnival is celebrated in the south of The Netherlands and mostly in the provinces Noord-Brabant and Limburg. The ways it is celebrated can also be diveded in two mean variants; "het Bourgondisch Carnaval" and "het Rijnlands Carnaval." 
 In Brabant you will see especially the first one. Everyone dresses simple and the same, because everyone is the same. This way, classes are not visible anymore.
 The second kind of celebration is the one you will see in Limburg. Everyone dresses extraordinary. The crazier the better.
 Ofcourse, there are a lot of local adaptations of these two main kinds of celebration.
 
 [1] Wettelijke Feestdagen. *Carnaval*. https://www.wettelijke-feestdagen.nl/Feestdagen/Carnaval.aspx.
 
-![Vastelaovesgezicht 2019](vastelaovesgezicht.PNG){width=70%}
+![Vastelaovesgezicht 2019](vastelaovesgezicht.PNG){width=90%}
 
 
 ### Carnival Music Is More Similar Than Current Hitsongs. {data-commentary-width=300}
@@ -169,7 +92,7 @@ vergelijking <- muziek %>%                       # Start with awards.
     minor_breaks = NULL
   ) +
   scale_colour_manual(values =
-      c("gold1", "blue1")
+      c("aquamarine1", "azure")
   ) +
   scale_size_continuous(       # Fine-tune the sizes of each point.
     trans = "exp",           # Use an exp transformation to emphasise loud.
@@ -211,7 +134,28 @@ For this visualisation I used three different Spotify playlists; *Vastelaovend 2
 What stands out the most is that the carnival music is mostly situated in the same quarter, high energy/high valence, while the hitsongs are more spread out, only avoiding the low energy/high valence quarter. This indicates that carnival music is generally very similar.
 As is shown in the table and the scatterplot, carnival music is more often in a major mode. The music is almost always "feel-good" music and so, the use of a major mode seems like a logical decision.
 
-### The Most Popular Carnival Songs
+### Limburg vs Brabant {data-commentary-width=450}
+
+|Audio Feature   |Limburg             |Noord-Brabant          |
+|----------------|--------------------|-----------------------|
+|Acousticness    |M = 0.239 SD = 0.185|M = 0.183 SD = 0.154   |
+|Danceability    |M = 0.635 SD = 0.143|M = 0.707 SD = 0.115   |
+|Energy          |M = 0.804 SD = 0.112|M = 0.882 SD = 0.089   |
+|Instrumentalness|M = 0.003 SD = 0.029|M = 0.013 SD = 0.079   |
+|Liveness        |M = 0.222 SD = 0.173|M = 0.281 SD = 0.220   |
+|Loudness        |M = -5.91 SD = 1.27 |M = -4.92 SD = 1.89    |
+|Speechiness     |M = 0.073 SD = 0.064|M = 0.097 SD = 0.065   |
+|Valence         |M = 0.776 SD = 0.176|M = 0.810 SD = 0.183   |
+|Mode            |M = 0.994 SD = 0.232|M = 0.800 SD = 0.402   |
+*Means and Standard Deviations of various Spootify Audio Features*
+
+***
+**What Is The Difference Between The Audio Features Of Songs From Limburg And Noord-Brabant?**
+
+To find out what the difference between songs from Limburg and Brabant is, I examined the means and standard deviations of the playlists I used. What becomes clear is that there is no significant difference between the two. The songs from Limburg tend to be in a Major mode more often and the variation of the mode in Brabant is higher than in Limburg. Except for the language and mode, all features tend to be very similar. 
+This clarifies that the two kinds of music are, in fact, very similar to each other.
+
+### What Are The Most Popular Songs In Each Province?
 
 ```{r}
 carnavall <- carnaval %>%                       # Start with awards.
@@ -240,7 +184,7 @@ carnavall <- carnaval %>%                       # Start with awards.
   ) +
   scale_colour_manual(
     values =
-      c("gold1", "blue1")
+      c("aquamarine1", "azure")
   )   +
   scale_size_continuous(       # Fine-tune the sizes of each point.
     trans = "exp",           # Use an exp transformation to emphasise loud.
@@ -261,74 +205,458 @@ ggplotly(carnavall)
 
 To compare the songs from Brabant to those from Limburg, I need to make a selection of which songs I will use. I wanted to base this decision on track popularity.
 
-For Brabant, the three most popular tracks are *De Toreador*, *Links Rechts* and *Brabant*. The first song is definately an outlier and that is why I won't be using that song. *Brabant* by Guus Meeuwis is a song that is played by Dutch radiostations throughout the whole year, so I won't be using that song either. Therefore, the songs I will use are *Links Rechts*, *Kali* and *Potentie*.
-
 *Limburg* by Rowwen Hèze is the most popular song for Limburg, but the same as for the Guus Meeuwis applies to this song. The songs I will be using are *Nao 't Zuuje*, *VRUNJ TOT DE ALLERLESTE RUNJ* and *1000 Sterre*.
+
+For Brabant, the three most popular tracks are *De Toreador*, *Links Rechts* and *Brabant*. The first song is definately an outlier and that is why I won't be using that song. *Brabant* by Guus Meeuwis is a song that is played by Dutch radiostations throughout the whole year, so I won't be using that song either. Therefore, the songs I will use are *Links Rechts*, *Kali* and *Potentie*.
 
 Another thing that becomes visible by this plot is that the Dutch music is much more popular. This could be due to the fact that other people, who don't celebrate carnival, still listen to this music at e.g. parties. Because these songs are in Dutch and the songs from Limburg aren't, makes these more approachable for others.
 
-### Carnival Music Differs in Tempo
+### Two Versions Of The Same Song Are Very Similar.
 
 ```{r}
-sterre <- get_tidy_audio_analysis("3Anu8IPzrh9GUsOBh04rWn")
+beppie <- 
+    get_tidy_audio_analysis('4M2tPMJdLldCKDhBZGLR9t') %>% 
+    select(segments) %>% unnest(segments) %>% 
+    compmus_c_transpose('D#') %>% 
+    select(start, duration, pitches)
+rene <- 
+    get_tidy_audio_analysis('7drS8Zj5rq3usSZY1e5crj') %>% 
+    select(segments) %>% unnest(segments) %>%
+    compmus_c_transpose('A') %>%
+    select(start, duration, pitches)
 
-sterre %>% 
-    tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
-    ggplot(aes(x = time, y = bpm, fill = power, title = "1000 Sterre")) + 
-    geom_raster() + 
-    scale_fill_viridis_c(guide = 'none') +
-    labs(x = 'Time (s)', y = 'Tempo (BPM)') +
-    theme_classic()
 
-zuuje <- 
-    get_tidy_audio_analysis('0rSb6Xjxzsus8qJaJ6017S')
+compmus_long_distance(
+    beppie %>% mutate(pitches = map(pitches, compmus_normalise, 'euclidean')),
+    rene %>% mutate(pitches = map(pitches, compmus_normalise, 'euclidean')),
+    feature = pitches,
+    method = 'angular') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    scale_fill_continuous(type = 'viridis', guide = 'none') +
+    labs(x = 'Beppie Kraft', y = 'Rene Schuurmans', title = "Dynamic Time Warping", subtitle = "Laat De Zon In Je Hart") +
+    theme_minimal() +
+  coord_equal()
 
-zuuje %>% 
-    tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
-    ggplot(aes(x = time, y = bpm, fill = power, title = "Nao 't Zuuje")) + 
-    geom_raster() + 
-    scale_fill_viridis_c(guide = 'none') +
-    labs(x = 'Time (s)', y = 'Tempo (BPM)') +
-    theme_classic()
-
-joost <- 
-  get_tidy_audio_analysis("7IHqbDM2o7uCpb2SJnijWl")
-
-joost %>% 
-    tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
-    ggplot(aes(x = time, y = bpm, fill = power, title = "Joost")) + 
-    geom_raster() + 
-    scale_fill_viridis_c(guide = 'none') +
-    labs(x = 'Time (s)', y = 'Tempo (BPM)') +
-    theme_classic()
-
-zuipschuit <-
-  get_tidy_audio_analysis("0kfQVYncHXlHfnRUxkZdk4")
-
-zuipschuit %>% 
-    tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
-    ggplot(aes(x = time, y = bpm, fill = power, title = "De Zuipschuit")) + 
-    geom_raster() + 
-    scale_fill_viridis_c(guide = 'none') +
-    labs(x = 'Time (s)', y = 'Tempo (BPM)') +
-    theme_classic()
 ```
 
 ***
-For making the tempograms, I used the same songs as before.
-What becomes clear is that even though the songs seem to be very similar, the tempi of the songs really differ from each other.
 
-The song *1000 Sterre* has a tempo a bit slower then 140 BPM. In the pre-chorus of the song, there is no drumbeat and this is very clear to see in the tempogram.
+Because there is a language difference in the music from Brabant and Limburg, I thought it'd be interesting to compare a song. Sometimes artists make covers of songs that are popular in the other province. In this case I choose the song *Laot de zon in dien hart* and *Laat de zon in je hart*, which means let the sun into your heart. When you listen to the tracks, the two versions seem to be very alike.
 
-The second song, *Nao 't Zuuje*, is a very difficult song for Spotify to define. I think this is due to the fact that the song shifts between two time signatures, 6/8 and 9/8. And the song makes almost no use of drums.
+```{r}
 
-*Joost* is the song with the most clear tempo around 150 BPM. When you listen to the song, you could argue that it has been made with a computer. Personally, this tempogram is an argument to say that this is indeed what happened.
+beppie <- get_track_audio_features('4M2tPMJdLldCKDhBZGLR9t')
+rene <- get_track_audio_features('7drS8Zj5rq3usSZY1e5crj')
 
-I think that something went wrong in the last tempogram. Because, according to this, there should be an increase in tempo at the end of *De Zuipschuit*. I don't really hear this myself, but that could be something to look into a little bit deeper.
+``` 
+|Audio Feature    |Rene Schuurmans|Beppie Kraft|
+|-----------------|---------------|------------|
+|Danceability     |0.731	        |0.786       |
+|Energy	          |0.807	        |0.791       |
+|Key	            |9	            |3           |
+|Loudness         |-5.508	        |-6.294      |
+|Mode	            |1              |1           |
+|Speechiness      |0.0289	        |0.0279      |
+|Acousticness	    |0.636          |0.431       |
+|Instrumentalness	|0	            |0           |
+|Liveness	        |0.275	        |0.332       |
+|Valence	        |0.963	        |0.939       |
+|Tempo	          |123.986	      |123.94      |
+*Means of Spotify Audio Features*
+
+As becomes clear from the table, the only big difference between the two songs is the 'loudness' feature and the key. The version of Rene Schuurmans is in A major and the version of Beppie Kraft is in D# major.
+The *dynamic time warping* shows us that the songs also line up perfectly. When you look closely you can see a straight diagonal line from 0 to 200. This suggests that the only important difference for a song is the language it's in.
+
+### Carnical Music Is Very Repetitive. 
+
+```{r}
+zuuje <-
+    get_tidy_audio_analysis("0rSb6Xjxzsus8qJaJ6017S") %>% 
+    compmus_align(bars, segments) %>% 
+    select(bars) %>% unnest(bars) %>% 
+    mutate(
+        pitches = 
+            map(segments, 
+                compmus_summarise, pitches, 
+                method = 'rms', norm = 'euclidean')) %>% 
+    mutate(
+        timbre = 
+            map(segments, 
+                compmus_summarise, timbre, 
+                method = 'mean'))
+
+tzuuje <- zuuje %>% 
+    compmus_self_similarity(timbre, 'angular') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() +
+    labs(x = '', y = '', title = "SSM Timbre", subtitle = "Nao 't Zuuje")
+
+zuuje_chroma <- get_tidy_audio_analysis("0rSb6Xjxzsus8qJaJ6017S") %>%
+  compmus_align(bars, segments) %>%
+  select(bars) %>% unnest(bars) %>%
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = 'mean', norm = 'manhattan')) %>%
+  mutate(
+    chroma =
+      map(segments,
+          compmus_summarise, timbre,
+          method = 'mean'))
+
+czuuje <- zuuje_chroma %>% 
+    compmus_self_similarity(chroma, 'manhattan') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() +
+    labs(x = '', y = '', title = "SSM Chroma", subtitle = "Nao 't Zuuje")
+
+vrunj <-
+    get_tidy_audio_analysis("5ySSktmiKLbSjP4Q93NMh1") %>% 
+    compmus_align(bars, segments) %>% 
+    select(bars) %>% unnest(bars) %>% 
+    mutate(
+        pitches = 
+            map(segments, 
+                compmus_summarise, pitches, 
+                method = 'rms', norm = 'euclidean')) %>% 
+    mutate(
+        timbre = 
+            map(segments, 
+                compmus_summarise, timbre, 
+                method = 'mean'))
+
+tvrunj <- vrunj %>% 
+    compmus_self_similarity(timbre, 'angular') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() +
+    labs(x = '', y = '', title = " ", subtitle = "VRUNJ TDA RUNJ")
+
+vrunj_chroma <- get_tidy_audio_analysis("5ySSktmiKLbSjP4Q93NMh1") %>%
+  compmus_align(bars, segments) %>%
+  select(bars) %>% unnest(bars) %>%
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = 'mean', norm = 'manhattan')) %>%
+  mutate(
+    chroma =
+      map(segments,
+          compmus_summarise, timbre,
+          method = 'mean'))
+
+cvrunj <- vrunj_chroma %>% 
+    compmus_self_similarity(chroma, 'manhattan') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() +
+    labs(x = '', y = '', title = " ", subtitle = "VRUNJ TDA RUNJ")
+
+sterre <- 
+    get_tidy_audio_analysis('2belCUvfatuYkLvppS4EVV') %>% 
+    compmus_align(bars, segments) %>% 
+    select(bars) %>% unnest(bars) %>% 
+    mutate(
+        pitches = 
+            map(segments, 
+                compmus_summarise, pitches, 
+                method = 'rms', norm = 'euclidean')) %>% 
+    mutate(
+        timbre = 
+            map(segments, 
+                compmus_summarise, timbre, 
+                method = 'mean'))
+
+tsterre <- sterre %>% 
+    compmus_self_similarity(timbre, 'angular') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() +
+    labs(x = '', y = '', title = " ", subtitle = "1000 Sterre")
+
+sterre_chroma <- get_tidy_audio_analysis("2belCUvfatuYkLvppS4EVV") %>%
+  compmus_align(bars, segments) %>%
+  select(bars) %>% unnest(bars) %>%
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = 'mean', norm = 'manhattan')) %>%
+  mutate(
+    chroma =
+      map(segments,
+          compmus_summarise, timbre,
+          method = 'mean'))
+
+csterre <- sterre_chroma %>% 
+    compmus_self_similarity(chroma, 'manhattan') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() +
+    labs(x = '', y = '', title = " ", subtitle = "1000 Sterre")
+
+linksrechts <- 
+    get_tidy_audio_analysis('7nFKFcmWf2l7WTyK0g9MHX') %>% 
+    compmus_align(bars, segments) %>% 
+    select(bars) %>% unnest(bars) %>% 
+    mutate(
+        pitches = 
+            map(segments, 
+                compmus_summarise, pitches, 
+                method = 'rms', norm = 'euclidean')) %>% 
+    mutate(
+        timbre = 
+            map(segments, 
+                compmus_summarise, timbre, 
+                method = 'mean'))
+
+tlinksrechts <- linksrechts %>% 
+    compmus_self_similarity(timbre, 'angular') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() +
+    labs(x = '', y = '', title = " ", subtitle = "Links Rechts")
+
+linksrechts_chroma <- get_tidy_audio_analysis("7nFKFcmWf2l7WTyK0g9MHX") %>%
+  compmus_align(bars, segments) %>%
+  select(bars) %>% unnest(bars) %>%
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = 'mean', norm = 'manhattan')) %>%
+  mutate(
+    chroma =
+      map(segments,
+          compmus_summarise, timbre,
+          method = 'mean'))
+
+clinksrechts <- linksrechts_chroma %>% 
+    compmus_self_similarity(chroma, 'manhattan') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() + labs(x = '', y = '', title = " ", subtitle = "Links Rechts")
+
+kali <- 
+    get_tidy_audio_analysis('4eyGhxR256IUS9BQbuGEGb') %>% 
+    compmus_align(bars, segments) %>% 
+    select(bars) %>% unnest(bars) %>% 
+    mutate(
+        pitches = 
+            map(segments, 
+                compmus_summarise, pitches, 
+                method = 'rms', norm = 'euclidean')) %>% 
+    mutate(
+        timbre = 
+            map(segments, 
+                compmus_summarise, timbre, 
+                method = 'mean'))
+
+tkali <- kali %>% 
+    compmus_self_similarity(timbre, 'angular') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() +
+    labs(x = '', y = '', title = " ", subtitle = "Kali")
+
+kali_chroma <- get_tidy_audio_analysis("4eyGhxR256IUS9BQbuGEGb") %>%
+  compmus_align(bars, segments) %>%
+  select(bars) %>% unnest(bars) %>%
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = 'mean', norm = 'manhattan')) %>%
+  mutate(
+    chroma =
+      map(segments,
+          compmus_summarise, timbre,
+          method = 'mean'))
+
+ckali <- kali_chroma %>% 
+    compmus_self_similarity(chroma, 'manhattan') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() + labs(x = '', y = '', title = " ", subtitle = "Kali")
+
+potentie <- 
+    get_tidy_audio_analysis('6UtyNItDq79iHK6eevVq8h') %>% 
+    compmus_align(bars, segments) %>% 
+    select(bars) %>% unnest(bars) %>% 
+    mutate(
+        pitches = 
+            map(segments, 
+                compmus_summarise, pitches, 
+                method = 'rms', norm = 'euclidean')) %>% 
+    mutate(
+        timbre = 
+            map(segments, 
+                compmus_summarise, timbre, 
+                method = 'mean'))
+
+tpotentie <- potentie %>% 
+    compmus_self_similarity(timbre, 'angular') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() +
+    labs(x = '', y = '', title = " ", subtitle = "Potentie")
+
+potentie_chroma <- get_tidy_audio_analysis("6UtyNItDq79iHK6eevVq8h") %>%
+  compmus_align(bars, segments) %>%
+  select(bars) %>% unnest(bars) %>%
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = 'mean', norm = 'manhattan')) %>%
+  mutate(
+    chroma =
+      map(segments,
+          compmus_summarise, timbre,
+          method = 'mean'))
+
+cpotentie <- potentie_chroma %>% 
+    compmus_self_similarity(chroma, 'manhattan') %>% 
+    ggplot(
+        aes(
+            x = xstart + xduration / 2, 
+            width = xduration,
+            y = ystart + yduration / 2,
+            height = yduration,
+            fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() + labs(x = '', y = '', title = " ", subtitle = "Potentie")
+
+grid.arrange(tzuuje, tvrunj, tsterre, tlinksrechts, tkali, tpotentie, nrow = 2, ncol = 3)
+
+grid.arrange(czuuje, cvrunj, csterre, clinksrechts, ckali, cpotentie, nrow = 2, ncol = 3)
+
+```
+
+***
+**Do These SSM Give Us An Idea About The Structure Of Carnival Music?**
+
+When we take a look at the self-similaritie matrices for timbre and chroma features for each of the songs, we can tell a lot about the structure of each song. If a song is very repetitive, you can also see this in these matrice.
+
+*Limburg*
+
+*Nao 't Zuuje* seems to have a very simple and standard structure. It starts with a verse, a chorus, then again a verse and a chorus, a bridge and it ends with another chorus. The structure isn't easy to see as with other songs, but this could be due to the fact that there are some small changes, like adding percussion.
+The second song, *VRUNJ TOT DE ALLERLESTE RUNJ*, does not have a very clear structure. It is repetitive, but in smaller sections. It does start with a verse and a chorus, but the second verse is a lot shorter and the seconde chorus longer. Then there is a bridge, some instrumental part and a modulation to again a longer chorus. The song keeps using the same building blocks, but not in a way that you can see an obvious structure.
+*1000 Sterre*, on the other hand, does have a very obvious structure. It starts with a chorus and a verse, which is repeated. The song does not have a bridge, it's just the chorus again. In contrast to the second song, this song has a very simple and repetitive structure.
+
+*Noord-Brabant*
+
+The Self-Similarity Matrix of *Links Rechts* shows that the song has a lot of repetitive blocks, but with little changes. It starts with a short intro and then sort of a verse. But the melody of the verse keeps coming back. When there are no lyrics, they sing the melody on "la la la." At the end, the song speeds up. Because the same building block keeps coming back a little different, the matrix isn't very clear.
+*Kali* does show an obvious structure. It begins with an instrumental bit and then there is a verse and a chorus. After a smaller instrumental part, the verse and chorus are repeated. After an instrumental bridge of a variation of the melody of the chorus, the song ends with an shortened chorus.
+The last song, *Potentie*, shows, again, a very vague matrix. It starts with three verses which are very alike, but with small alterations. After the chorus, there is a very long verse. It ends with the chorus and an instrumental part. Throughout the whole song you can hear this part coming back. In the matrix the chorus are visible, but the rest of the song is kind of a mess.
+
+*Conlusion*
+
+What becomes clear from this matrices is that carnival music doesn't always have the same structure. Some songs are very simple and obvious, while others are more complex in terms of structure. The one thing they do have in common is that all the songs are repetitive, some a little bit more then others. Overall, the songs are easy to follow and you should be able to sing along to them quite quick.
 
 
-
-### Carnival Music has a clear structure
+### Carnival Music Is Not Related To Key.
 
 ```{r}
 
@@ -424,14 +752,33 @@ zuuje <-
                 compmus_summarise, pitches, 
                 method = 'mean', norm = 'manhattan'))
 
-zuuje %>% 
+kzuuje <- zuuje %>% 
     compmus_match_pitch_template(key_templates, 'euclidean', 'manhattan') %>% 
     ggplot(
         aes(x = start + duration / 2, width = duration, y = name, fill = d)) +
     geom_tile() +
     scale_fill_viridis_c(option = 'E', guide = 'none') +
     theme_minimal() +
-    labs(x = 'Time (s)', y = '') + ggtitle("Nao 't Zuuje")
+    labs(x = '', y = '', title = "Keygrams", subtitle = "Nao 't Zuuje")
+
+vrunj <- 
+    get_tidy_audio_analysis("5ySSktmiKLbSjP4Q93NMh1") %>% 
+    compmus_align(sections, segments) %>% 
+    select(sections) %>% unnest(sections) %>% 
+    mutate(
+        pitches = 
+            map(segments, 
+                compmus_summarise, pitches, 
+                method = 'mean', norm = 'manhattan'))
+
+kvrunj <- vrunj %>% 
+    compmus_match_pitch_template(key_templates, 'euclidean', 'manhattan') %>% 
+    ggplot(
+        aes(x = start + duration / 2, width = duration, y = name, fill = d)) +
+    geom_tile() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_minimal() +
+    labs(x = 'Time (s)', y = '', title = " ", subtitle = "VRUNJ TDA RUNJ")
 
 sterre <- 
   get_tidy_audio_analysis("3Anu8IPzrh9GUsOBh04rWn") %>%
@@ -443,17 +790,17 @@ sterre <-
                 compmus_summarise, pitches, 
                 method = 'mean', norm = 'manhattan'))
 
-sterre %>%
+ksterre <- sterre %>%
   compmus_match_pitch_template(key_templates, 'euclidean', 'manhattan') %>% 
     ggplot(
         aes(x = start + duration / 2, width = duration, y = name, fill = d)) +
     geom_tile() +
     scale_fill_viridis_c(option = 'E', guide = 'none') +
     theme_minimal() +
-    labs(x = 'Time (s)', y = '') + ggtitle("1000 Sterre")
+    labs(x = '', y = '', title = " ", subtitle = "1000 Sterre")
 
-joost <- 
-  get_tidy_audio_analysis("7IHqbDM2o7uCpb2SJnijWl") %>%
+linksrechts <- 
+  get_tidy_audio_analysis("7nFKFcmWf2l7WTyK0g9MHX") %>%
    compmus_align(sections, segments) %>% 
     select(sections) %>% unnest(sections) %>% 
     mutate(
@@ -462,18 +809,18 @@ joost <-
                 compmus_summarise, pitches, 
                 method = 'mean', norm = 'manhattan'))
 
-joost %>% 
+klinksrechts <- linksrechts %>% 
     compmus_match_pitch_template(key_templates, 'euclidean', 'manhattan') %>% 
     ggplot(
         aes(x = start + duration / 2, width = duration, y = name, fill = d)) +
     geom_tile() +
     scale_fill_viridis_c(option = 'E', guide = 'none') +
     theme_minimal() +
-    labs(x = 'Time (s)', y = '') + ggtitle("Joost")
+    labs(x = '', y = '', title = " ", subtitle = "Links Rechts")
 
 
-zuipschuit <-
-  get_tidy_audio_analysis("0kfQVYncHXlHfnRUxkZdk4") %>%
+kali <-
+  get_tidy_audio_analysis("4eyGhxR256IUS9BQbuGEGb") %>%
   compmus_align(sections, segments) %>% 
     select(sections) %>% unnest(sections) %>% 
     mutate(
@@ -482,198 +829,252 @@ zuipschuit <-
                 compmus_summarise, pitches, 
                 method = 'mean', norm = 'manhattan'))
 
-zuipschuit %>%
+kkali <- kali %>%
   compmus_match_pitch_template(key_templates, 'euclidean', 'manhattan') %>% 
     ggplot(
         aes(x = start + duration / 2, width = duration, y = name, fill = d)) +
     geom_tile() +
     scale_fill_viridis_c(option = 'E', guide = 'none') +
     theme_minimal() +
-    labs(x = 'Time (s)', y = '') + ggtitle("De Zuipschuit")
+    labs(x = 'Time (s)', y = '', title = " ", subtitle = "Kali")
 
-
-```
-
-***
-I made four keygrams, two for songs from Limburg and two for Brabant. Though the keygrams don't show the right one, you can see the different parts of the songs.
-It becomes clear that, despite the fact that carnival music in general is very similar, individual songs show difference in structure.
-
-*Nao 't Zuuje*, for instance, consists of four different parts in which only the last part is different in key. *1000 Sterre* also has four parts, but the chorus couplet structure is clearly visible. Both the keygrams show a lot of yellow.
-
-When you look at the keygrams for the songs from Brabant, you see a lot more blue. *Joost* consists of three parts; the small yellow part, the middle and the modulation at the end of the song. *De Zuipschuit* shows four parts. I don't think it is possible to tell in which key this song is made, but in the middle something else is happening. At the end, there are a lot of changes.
-
-
-
-### Limburg vs. Brabant
-
-```{r}
-beppie <- 
-    get_tidy_audio_analysis('4M2tPMJdLldCKDhBZGLR9t') %>% 
-    select(segments) %>% unnest(segments) %>% 
-    compmus_c_transpose('D#') %>% 
-    select(start, duration, pitches)
-rene <- 
-    get_tidy_audio_analysis('7drS8Zj5rq3usSZY1e5crj') %>% 
-    select(segments) %>% unnest(segments) %>%
-    compmus_c_transpose('A') %>%
-    select(start, duration, pitches)
-
-beppie %>% 
-    mutate(pitches = map(pitches, compmus_normalise, 'euclidean')) %>% 
-    compmus_gather_chroma %>% 
-    ggplot(
-        aes(
-            x = start + duration / 2, 
-            width = duration, 
-            y = pitch_class, 
-            fill = value)) + 
-    geom_tile() +
-    labs(x = 'Time (s)', y = NULL, fill = 'Magnitude') +
-    theme_minimal()
-
-rene %>% 
-    mutate(pitches = map(pitches, compmus_normalise, 'euclidean')) %>% 
-    compmus_gather_chroma %>% 
-    ggplot(
-        aes(
-            x = start + duration / 2, 
-            width = duration, 
-            y = pitch_class, 
-            fill = value)) + 
-    geom_tile() +
-    labs(x = 'Time (s)', y = NULL, fill = 'Magnitude') +
-    theme_minimal()
-
-compmus_long_distance(
-    beppie %>% mutate(pitches = map(pitches, compmus_normalise, 'chebyshev')),
-    rene %>% mutate(pitches = map(pitches, compmus_normalise, 'chebyshev')),
-    feature = pitches,
-    method = 'euclidean') %>% 
-    ggplot(
-        aes(
-            x = xstart + xduration / 2, 
-            width = xduration,
-            y = ystart + yduration / 2,
-            height = yduration,
-            fill = d)) + 
-    geom_tile() +
-    scale_fill_continuous(type = 'viridis', guide = 'none') +
-    labs(x = 'Beppie Kraft', y = 'Rene Schuurmans') +
-    theme_minimal() +
-  coord_equal()
-
-```
-
-***
-
-Because there is a language difference in the music from Brabant and Limburg, I thought it'd be interesting to compare a song. Sometimes artists make covers of songs that are popular in the other county. In this case I choose the song *Laot de zon in dien hart* and *Laat de zon in je hart*, which means let the sun into your heart. When you listen to the tracks, the two versions seem to be very alike.
-
-```{r}
-
-beppie <- get_track_audio_features('4M2tPMJdLldCKDhBZGLR9t')
-rene <- get_track_audio_features('7drS8Zj5rq3usSZY1e5crj')
-
-``` 
-|Audio Feature    |Rene Schuurmans|Beppie Kraft|
-|-----------------|---------------|------------|
-|Danceability     |0.731	        |0.786       |
-|Energy	          |0.807	        |0.791       |
-|Key	            |9	            |3           |
-|Loudness         |-5.508	        |-6.294      |
-|Mode	            |1              |1           |
-|Speechiness      |0.0289	        |0.0279      |
-|Acousticness	    |0.636          |0.431       |
-|Instrumentalness	|0	            |0           |
-|Liveness	        |0.275	        |0.332       |
-|Valence	        |0.963	        |0.939       |
-|Tempo	          |123.986	      |123.94      |
-
-As becomes clear from the table, the only big difference between the two songs is the 'loudness' feature and the key. The version of Rene Schuurmans is in A major and the version of Beppie Kraft is in D# major.
-
-I think the reason that the graph is so blurry is because the songs are in different keys, but I am not sure and I don't know how to fix it.
-
-### *1000 Sterre* is repetitive 
-
-```{r}
-
-sterre <- 
-    get_tidy_audio_analysis('2belCUvfatuYkLvppS4EVV') %>% 
-    compmus_align(bars, segments) %>% 
-    select(bars) %>% unnest(bars) %>% 
+potentie <-
+  get_tidy_audio_analysis("6UtyNItDq79iHK6eevVq8h") %>%
+  compmus_align(sections, segments) %>% 
+    select(sections) %>% unnest(sections) %>% 
     mutate(
         pitches = 
             map(segments, 
                 compmus_summarise, pitches, 
-                method = 'rms', norm = 'euclidean')) %>% 
-    mutate(
-        timbre = 
-            map(segments, 
-                compmus_summarise, timbre, 
-                method = 'mean'))
+                method = 'mean', norm = 'manhattan'))
 
-sterre %>% 
-    compmus_gather_timbre %>% 
+kpotentie <- potentie %>%
+  compmus_match_pitch_template(key_templates, 'euclidean', 'manhattan') %>% 
     ggplot(
-        aes(
-            x = start + duration / 2, 
-            width = duration, 
-            y = basis, 
-            fill = value)) + 
+        aes(x = start + duration / 2, width = duration, y = name, fill = d)) +
     geom_tile() +
-    labs(x = 'Time (s)', y = NULL, fill = 'Magnitude') +
-    scale_fill_viridis_c(option = 'E') +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_minimal() +
+    labs(x = '', y = '', title = " ", subtitle = "Potentie")
+
+grid.arrange(kzuuje, kvrunj, ksterre, klinksrechts, kkali, kpotentie, nrow = 2, ncol = 3)
+
+```
+
+***
+**What Do The Keygrams Show?**
+
+Obviously, the keygrams should show in what key and mode a song is. Unfortunately, the key it tells it is, doesn't line up with in what key the song actually is. I will compare the key from the keygram to the one from the audio features.
+
+*Limburg*
+
+|Song          |Keygram Key|Audio Feature Key|
+|--------------|-----------|-----------------|
+|Nao 't Zuuje  |Emaj       |Gmaj             |
+|VRUNJ TDA RUNJ|Dmaj       |Fmaj             |
+|1000 Sterre   |?          |Fmaj             |
+*Keys for the songs from Limburg*
+
+As becomes clear from the table, all of the keygrams don't line up with the actual key of the song according to the audio features. The first two songs, *Nao 't Zuuje* and *VRUNJ TOT DE ALLERLESTE RUNJ*, modulate to a different key. The keygrams do show this, so it's not like it's not correct at all. Sadly, the keygram of *1000 Sterre* gives us nothing to hold on to regarding a key. It has a really hard time deciding in what key the song is.
+
+*Noord-Brabant*
+
+|Song          |Keygram Key|Audio Feature Key|
+|--------------|-----------|-----------------|
+|Link Rechts   |?          |B♭   min         |
+|Kali          |Bmaj       |Fmin             |
+|Potentie      |Emaj       |Cmaj             |
+*Keys for the songs from Noord-Brabant*
+
+For the songs from Brabant, the keygrams also have a really hard time deciding what each song is in. The keygram of *Links Rechts* shows a lot of greyish colours, which means it has a lot of trouble determining. The same is true for *Kali*, but it does show a dark line at Bmaj. I think this is quite interesting, because it is a minor song. The keygram of the song *Potentie* gives almost no indication that the song could possibly be in Cmaj. 
+
+*Conclusion*
+
+The keygrams don't give any useful information, except for when a song modulates to another key. Overall, I do think that carnival music isn't related to one or a few keys. I think it's just a singer's preference and own decision.
+
+
+### Carnival Music Differs in Tempo.
+
+```{r}
+
+zuuje <- 
+    get_tidy_audio_analysis('0rSb6Xjxzsus8qJaJ6017S')
+
+tzuuje <- zuuje %>% 
+    tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
+    ggplot(aes(x = time, y = bpm, title = "Nao 't Zuuje", fill = power)) + 
+  labs(title = "Tempogram", subtitle = "Nao 't Zuuje") +
+    geom_raster() + 
+    scale_fill_viridis_c(guide = 'none') +
+    labs(x = ' ', y = 'Tempo (BPM)') +
     theme_classic()
 
-sterre %>% 
-    compmus_self_similarity(timbre, 'cosine') %>% 
-    ggplot(
-        aes(
-            x = xstart + xduration / 2, 
-            width = xduration,
-            y = ystart + yduration / 2,
-            height = yduration,
-            fill = d)) + 
-    geom_tile() +
-    coord_fixed() +
-    scale_fill_viridis_c(option = 'E', guide = 'none') +
-    theme_classic() +
-    labs(x = '', y = '') + ggtitle("Timbre")
+vrunj <- get_tidy_audio_analysis('5ySSktmiKLbSjP4Q93NMh1')
 
-sterre_chroma <- get_tidy_audio_analysis("2belCUvfatuYkLvppS4EVV") %>%
-  compmus_align(bars, segments) %>%
-  select(bars) %>% unnest(bars) %>%
-  mutate(
-    pitches =
-      map(segments,
-          compmus_summarise, pitches,
-          method = 'mean', norm = 'manhattan')) %>%
-  mutate(
-    chroma =
-      map(segments,
-          compmus_summarise, timbre,
-          method = 'mean'))
+tvrunj <- vrunj %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
+    ggplot(aes(x = time, y = bpm, fill = power)) + 
+  labs(title = " ", subtitle = "VRUNJ TDA RUNJ") +
+    geom_raster() + 
+    scale_fill_viridis_c(guide = 'none') +
+    labs(x = 'Time (s)', y = ' ') +
+    theme_classic()
 
-sterre_chroma %>% 
-    compmus_self_similarity(chroma, 'manhattan') %>% 
-    ggplot(
-        aes(
-            x = xstart + xduration / 2, 
-            width = xduration,
-            y = ystart + yduration / 2,
-            height = yduration,
-            fill = d)) + 
-    geom_tile() +
-    coord_fixed() +
-    scale_fill_viridis_c(option = 'E', guide = 'none') +
-    theme_classic() +
-    labs(x = '', y = '') + ggtitle("Chroma")
+sterre <- get_tidy_audio_analysis("3Anu8IPzrh9GUsOBh04rWn")
+
+tsterre <- sterre %>% 
+    tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
+    ggplot(aes(x = time, y = bpm, fill = power)) + 
+    labs(titel = " ", subtitle = "1000 Sterre") +
+    geom_raster() + 
+    scale_fill_viridis_c(guide = 'none') +
+    labs(x = ' ', y = ' ') +
+    theme_classic()
+
+linksrechts <- get_tidy_audio_analysis("7nFKFcmWf2l7WTyK0g9MHX")
+
+tlinksrechts <- linksrechts %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
+    ggplot(aes(x = time, y = bpm, fill = power)) + 
+    labs(title = " ", subtitle = "Links Rechts") +
+    geom_raster() + 
+    scale_fill_viridis_c(guide = 'none') +
+    labs(x = ' ', y = 'Tempo (BPM)') +
+    theme_classic()
+
+kali <- get_tidy_audio_analysis("4eyGhxR256IUS9BQbuGEGb")
+
+tkali <- kali %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
+    ggplot(aes(x = time, y = bpm, fill = power)) + 
+    labs(title = " ", subtitle = "Kali") +
+    geom_raster() + 
+    scale_fill_viridis_c(guide = 'none') +
+    labs(x = 'Time (s)', y = ' ') +
+    theme_classic()
+
+potentie <- get_tidy_audio_analysis("6UtyNItDq79iHK6eevVq8h")
+
+tpotentie <- potentie %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) %>% 
+    ggplot(aes(x = time, y = bpm, fill = power)) + 
+    labs(title = " ", subtitle = "Potentie") +
+    geom_raster() + 
+    scale_fill_viridis_c(guide = 'none') +
+    labs(x = ' ', y = ' ') +
+    theme_classic()
+
+grid.arrange(tzuuje, tvrunj, tsterre, tlinksrechts, tkali, tpotentie, nrow = 2, ncol = 3)
+
+```
+
+***
+**What do the tempograms show?**
+
+What becomes clear is that even though the songs seem to be very similar, the tempi of the songs really differ from each other.
+
+*Limburg*
+
+The first of the songs from Limburg, *Nao 't Zuuje*, is a very difficult song for Spotify to define. I think this is due to the fact that the song shifts between two time signatures, 6/8 and 9/8. And the song makes almost no use of drums. Originally, the song has a tempo of 95 BPM, which matches the bottom line in the tempogram.
+The second song, *VRUNJ TOT DE ALLERLESTE RUNJ*, has a tempo around 85 BPM. When you listen to the song, you can hear that the drums aren't always present and they aren't always on the same beat. This could explain why the tempogram isn't so steady.
+The last song, *1000 Sterre*, has a tempo a bit slower then 140 BPM. In the pre-chorus of the song, there are no drums present and this is very clear to see in the tempogram. Overall, this song has a very steady tempo.
+
+*Noord-Brabant*
+
+The second row of tempograms shows the songs from Brabant. The first song, *Links Rechts*, shows two lines. One at 110 and one at 150 BPM. At the and we see two lines at 85 and 130 BPM. In the song itself, you don't really hear drums but you do hear very clear beat. So it's strange to me to see that there is such a difficulty at deciding the tempo of the song. The song does have a tempo of 150 BPM and at the end it speeds up. I think itis strange that you can't see this in the tempogram.
+The song *Kali* has a tempo of 95 BPM. You can see a lot of noise in the tempogram, but the tempo is very steady. The song does use drums throughout the whole song, but the noise could be due to the use of a percussion. There are two points at which the line shows a gap. This is right after the chorus, where the drums stop for a second.
+The last song, *Potentie*, has a very clear tempo of 150 BPM. The unstability at the beginning of the tempogram could be due to the fact that there is no drums in the beginning of the song. The tempogram shows almost no noise at all. When you listen to the song it becomes very clear that they made the beat with a computerprogram. This explains the fact that there is no noise.
+
+*Conclusion*
+
+When we look at all the different tempograms, you can't say that the tempo of a song determines what kind of carnival song is. The tempi really differ a lot. What you can see is when a song had been made with mostly a computer or if someone played the instruments themself.
+
+
+
+
+
+
+
+
+
+### A Classifier Is Able To Destinguish Between Limburg And Brabant.
+
+```{r}
+
+limburg <- 
+    get_playlist_audio_features('Henk Theunissen', '1xQvcNKQVMGOsuZK6nXx9a') %>%
+    slice(1:110) %>%
+    add_audio_analysis
+brabant <-
+    get_playlist_audio_features('Dewi Boessen', '5HTIYp3LELNnuvgUSByL9I') %>% 
+    add_audio_analysis
+
+carnaval <-
+  limburg %>% mutate(playlist = "Limburg") %>%
+  bind_rows(brabant %>% mutate(playlist = "Brabant")) %>%
+    mutate(playlist = factor(playlist)) %>% 
+    mutate(
+        segments = 
+            map2(segments, key, compmus_c_transpose)) %>% 
+    mutate(
+        pitches = 
+            map(segments, 
+                compmus_summarise, pitches, 
+                method = 'mean', norm = 'manhattan'),
+        timbre =
+            map(
+                segments,
+                compmus_summarise, timbre,
+                method = 'mean')) %>% 
+    mutate(pitches = map(pitches, compmus_normalise, 'clr')) %>% 
+    mutate_at(vars(pitches, timbre), map, bind_rows) %>% 
+    unnest(cols = c(pitches, timbre))
+
+carnaval_class <- 
+    recipe(playlist ~
+               danceability +
+               energy +
+               loudness +
+               speechiness +
+               acousticness +
+               instrumentalness +
+               liveness +
+               valence +
+               tempo +
+               duration +
+               C + `C#|Db` + D + `D#|Eb` +
+               E + `F` + `F#|Gb` + G +
+               `G#|Ab` + A + `A#|Bb` + B +
+               c01 + c02 + c03 + c04 + c05 + c06 +
+               c07 + c08 + c09 + c10 + c11 + c12,
+           data = carnaval) %>% 
+    step_center(all_predictors()) %>%
+    step_scale(all_predictors()) %>%
+    # step_range(all_predictors()) %>% 
+    prep(carnaval) %>% 
+    juice
+
+carnaval_knn <- 
+    nearest_neighbor(mode = 'classification', neighbors = 1) %>% 
+    set_engine('kknn')
+predict_knn <- function(split)
+    fit(carnaval_knn, playlist ~ ., data = analysis(split)) %>% 
+    predict(assessment(split), type = 'class') %>%
+    bind_cols(assessment(split))
+
+carnaval_cv <- carnaval_class %>% vfold_cv(5)
+
+carnaval_cv %>% 
+    mutate(pred = map(splits, predict_knn)) %>% unnest(pred) %>% 
+    conf_mat(truth = playlist, estimate = .pred_class) %>% 
+    autoplot(type = 'heatmap') + scale_fill_gradient(low = "aquamarine1", high = "azure") + labs(title = "Confusion Matrix")
+
 
 ```
 
 ***
 
-For the self similarity matrices, I choose the song *1000 Sterre* by Bjorn & Mieke. It is one of the song I like the most. There is a clear pattern visable and it shows that the song is repetitive. I also choose bars as level of detail, because this gave the most clear matrix.
+**What Is The Outcome Of Using A Classifier On The Playlists?**
 
-I wasn't able to make the chroma self similarity matrix work and because of that I could not compare the timbre on to the chroma one. I hope this is not a problem.
-
-
+I was very curious to see whether or not a classifier would be able to distinguish between songs from Limburg and Noord-Brabant. Because there is a difference in the size of the playlists, I used 110 songs for each playlist.
+What becomes visible is that the classifier does a good job. For the songs from Brabant is has about 67% right and for Limburg 76%. Everytime I run the classifier, the outcome is different. But everytime it does seem like the classifier is a little bit better at distinguishing the songs from Limburg.
